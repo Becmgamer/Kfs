@@ -1,0 +1,2068 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>KFS — Agência</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#080808;color:#eee;font-family:Arial,sans-serif}
+header{padding:15px 20px;border-bottom:1px solid #292929;display:flex;justify-content:space-between;align-items:center;position:relative}
+.logo{font-size:24px;font-weight:900;letter-spacing:2px}
+.menu{background:#eee;color:#080808;border:0;padding:9px 12px;border-radius:7px;font-size:19px;cursor:pointer}
+nav{display:none;position:absolute;right:20px;top:62px;background:#111;border:1px solid #333;border-radius:10px;padding:8px;z-index:20;min-width:190px}
+nav.open{display:block}
+nav button{display:block;width:100%;margin:3px 0;background:#eee;color:#080808;border:0;padding:10px;border-radius:7px;font-weight:700;text-align:left;cursor:pointer}
+.wrap{max-width:1100px;margin:auto;padding:28px 18px}
+.hero{padding:55px 0 35px}
+.hero h1{font-size:44px;margin:0 0 12px}
+.hero p{color:#aaa;line-height:1.6;max-width:700px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:15px}
+.card{background:#111;border:1px solid #292929;border-radius:12px;padding:20px;margin:14px 0}
+.btn{background:#eee;color:#080808;border:0;padding:10px 15px;border-radius:7px;font-weight:800;cursor:pointer}
+.btn.dark{background:#191919;color:#eee;border:1px solid #333}
+input,textarea,select{width:100%;padding:12px;margin:7px 0 13px;background:#0b0b0b;border:1px solid #333;border-radius:7px;color:#eee}
+textarea{min-height:90px;resize:vertical}
+.hidden{display:none}
+.muted,.small{color:#999}
+.small{font-size:12px}
+.success{color:#72e6a0}
+.danger{color:#ff7777}
+.warning{color:#ffd166}
+.xp{font-size:28px;font-weight:900}
+.bar{height:10px;background:#292929;border-radius:20px;overflow:hidden}
+.bar>div{height:100%;background:#eee}
+.mission{border-left:3px solid #eee}
+.topline{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:10px;border-bottom:1px solid #292929;font-size:14px}
+.status{display:inline-block;padding:4px 8px;border:1px solid #444;border-radius:999px;font-size:12px}
+hr{border:0;border-top:1px solid #292929;margin:22px 0}
+a{color:#fff}
+@media(max-width:700px){
+  .hero h1{font-size:34px}
+  .grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<div class="logo">KFS</div>
+<button class="menu" onclick="toggleMenu()">☰</button>
+
+<nav id="nav">
+<button onclick="show('home');closeMenu()">Início</button>
+<button onclick="show('login');closeMenu()">Entrar</button>
+<button onclick="show('missoes');renderPublicMissions();closeMenu()">Missões</button>
+<button onclick="show('adminLogin');closeMenu()">Admin</button>
+</nav>
+</header>
+
+<main>
+
+<section id="home">
+<div class="wrap hero">
+<p class="small">◆ ACESSO RESTRITO • KFS</p>
+<h1>UMA AGÊNCIA<br>SUPER SECRETA.</h1>
+<p>Área de recrutamento, missões e progressão de agentes.</p>
+
+<button class="btn" onclick="show('login')">ENTRAR</button>
+<button class="btn dark" onclick="openTest()">FAZER O TESTE</button>
+</div>
+</section>
+
+
+<section id="login" class="hidden">
+<div class="wrap">
+<div class="card">
+
+<h2>Entrar na KFS</h2>
+
+<label>Nome de acesso</label>
+<input id="loginNome" placeholder="Seu nome de acesso">
+
+<label>Senha</label>
+<input id="loginSenha" type="password" placeholder="Sua senha">
+
+<button class="btn" onclick="loginAgent()">Entrar</button>
+
+<p id="loginMsg"></p>
+
+<hr>
+
+<p class="muted">Ainda não tem conta?</p>
+
+<button class="btn dark" onclick="openTest()">Fazer o teste</button>
+
+</div>
+</div>
+</section>
+
+
+<section id="agente" class="hidden">
+<div class="wrap">
+
+<div class="topline">
+<div>
+<h2>Área do agente</h2>
+<p class="muted">Painel individual.</p>
+</div>
+
+<button class="btn" onclick="logoutAgent()">Sair</button>
+</div>
+
+<div id="agentProfile"></div>
+
+<h3>Missões disponíveis</h3>
+<div id="agentMissions" class="grid"></div>
+
+<h3>Minhas missões</h3>
+<div id="mySubmissions"></div>
+
+</div>
+</section>
+
+
+<section id="missoes" class="hidden">
+<div class="wrap">
+
+<h2>Missões disponíveis</h2>
+
+<p class="muted">
+Visualização pública. Para enviar uma missão concluída, entre na sua conta.
+</p>
+
+<div id="publicMissions" class="grid"></div>
+
+</div>
+</section>
+
+
+<section id="adminLogin" class="hidden">
+<div class="wrap">
+
+<div class="card">
+
+<h2>Painel administrativo</h2>
+
+<input id="adminPass" type="password" placeholder="Senha do admin">
+
+<button class="btn" onclick="loginAdmin()">Entrar</button>
+
+<p id="adminMsg"></p>
+
+</div>
+
+</div>
+</section>
+
+
+<section id="admin" class="hidden">
+<div class="wrap">
+
+<div class="topline">
+
+<div>
+<h2>Painel Admin</h2>
+<p class="muted">Agentes, missões e XP.</p>
+</div>
+
+<button class="btn" onclick="logoutAdmin()">Sair</button>
+
+</div>
+
+
+<div class="card">
+
+<h3>Criar agente aprovado</h3>
+
+<input id="novoNome" placeholder="Nome de acesso">
+
+<input id="novaSenha" type="password" placeholder="Senha">
+
+<select id="novoNivel"></select>
+
+<select id="novoSetor"></select>
+
+<input id="novoXP" type="number" min="0" value="0" placeholder="XP inicial">
+
+<select id="novoStatus">
+<option value="ativo">Ativo</option>
+<option value="bloqueado">Bloqueado</option>
+</select>
+
+<button class="btn" onclick="createAgent()">Criar agente</button>
+
+<p id="criarMsg"></p>
+
+</div>
+
+
+<div class="card">
+
+<h3>Agentes cadastrados</h3>
+
+<div style="overflow:auto">
+
+<table>
+
+<thead>
+<tr>
+<th>Nome</th>
+<th>Setor</th>
+<th>Nível</th>
+<th>XP</th>
+<th>Status</th>
+<th>Ações</th>
+</tr>
+</thead>
+
+<tbody id="agentsTable"></tbody>
+
+</table>
+
+</div>
+</div>
+
+
+<div class="card">
+
+<h3>Criar / gerenciar setores</h3>
+
+<input id="novoSetorNome" placeholder="Nome do setor">
+
+<textarea id="novoSetorDesc" placeholder="O que esse setor faz?"></textarea>
+
+<button class="btn" onclick="createSector()">Criar setor</button>
+
+<p id="sectorMsg"></p>
+
+<div id="sectorList"></div>
+
+</div>
+
+
+<div class="card">
+
+<h3>Criar missão</h3>
+
+<input id="mTitulo" placeholder="Título da missão">
+
+<textarea id="mDesc" placeholder="Descrição"></textarea>
+
+<input id="mXP" type="number" min="0" value="100" placeholder="XP da missão">
+
+<select id="mAlvo" onchange="updateMissionTargetOptions()">
+<option value="qualquer">Qualquer agente</option>
+<option value="setor">Setor específico</option>
+<option value="grupo">Grupo específico</option>
+</select>
+
+<div id="missionTargetOptions"></div>
+
+<input id="mLink" placeholder="Link da missão (opcional)">
+
+<select id="mStatus">
+<option value="disponivel">Disponível</option>
+<option value="pausada">Pausada</option>
+</select>
+
+<select id="mComprovacao">
+<option value="link">Link / evidência</option>
+<option value="texto">Texto</option>
+</select>
+
+<button class="btn" onclick="createMission()">Criar missão</button>
+
+<p id="missionMsg"></p>
+
+</div>
+
+
+<div class="card">
+
+<h3>Missões aguardando aprovação</h3>
+
+<div id="pendingSubmissions"></div>
+
+</div>
+
+
+<div class="card">
+
+<h3>Gerenciar missões</h3>
+
+<div id="missionManagement"></div>
+
+</div>
+
+
+<div class="card">
+
+<h3>Configuração de níveis e XP</h3>
+
+<p class="small">
+Para mudar o XP de cada nível, edite CONFIG.niveis no código.
+</p>
+
+<pre id="levelConfigPreview" style="white-space:pre-wrap;color:#aaa"></pre>
+
+</div>
+
+</div>
+</section>
+
+</main>
+
+
+<script>
+
+/* ==========================================================
+   SUPABASE
+   ========================================================== */
+
+const SUPABASE_URL = "https://rhrrokqnikouztlcaxlq.supabase.co";
+
+const SUPABASE_KEY = "sb_publishable_OStCNCmVNNksR3pGmA0hhA_oorACBHv";
+
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+);
+
+
+/* ==========================================================
+   CONFIGURAÇÃO KFS
+   ========================================================== */
+
+const CONFIG = {
+
+  adminSenha: "KFS2026",
+
+  testeUrl: "https://forms.gle/oBZTZS5BLuHXEgVr6",
+
+  niveis: [
+    {nome:"Nível 1",xp:0},
+    {nome:"Nível 2",xp:500},
+    {nome:"Nível 3",xp:1500},
+    {nome:"Nível 4",xp:3000},
+    {nome:"Nível 5",xp:5000},
+    {nome:"Nível 6",xp:8000},
+    {nome:"Nível 7",xp:12000}
+  ]
+
+};
+
+
+let currentAgent = null;
+
+
+/* ==========================================================
+   HASH DE SENHA
+   ========================================================== */
+
+async function hashPassword(password){
+
+  const data = new TextEncoder().encode(password);
+
+  const hash = await crypto.subtle.digest(
+    "SHA-256",
+    data
+  );
+
+  return Array.from(new Uint8Array(hash))
+    .map(b=>b.toString(16).padStart(2,"0"))
+    .join("");
+
+}
+
+
+/* ==========================================================
+   BANCO
+   ========================================================== */
+
+async function agents(){
+
+  const {data,error} = await supabaseClient
+    .from("agentes")
+    .select("*")
+    .order("id",{ascending:true});
+
+  if(error){
+
+    console.error(error);
+
+    alert("Erro ao carregar agentes: "+error.message);
+
+    return [];
+
+  }
+
+  return data || [];
+
+}
+
+
+async function missions(){
+
+  const {data,error} = await supabaseClient
+    .from("missoes")
+    .select("*")
+    .order("id",{ascending:true});
+
+  if(error){
+
+    console.error(error);
+
+    alert("Erro ao carregar missões: "+error.message);
+
+    return [];
+
+  }
+
+  return data || [];
+
+}
+
+
+async function subs(){
+
+  const {data,error} = await supabaseClient
+    .from("revisoes")
+    .select("*")
+    .order("id",{ascending:true});
+
+  if(error){
+
+    console.error(error);
+
+    alert("Erro ao carregar revisões: "+error.message);
+
+    return [];
+
+  }
+
+  return data || [];
+
+}
+
+
+async function sectors(){
+
+  const {data,error} = await supabaseClient
+    .from("setores")
+    .select("*")
+    .order("id",{ascending:true});
+
+  if(error){
+
+    console.error(error);
+
+    alert("Erro ao carregar setores: "+error.message);
+
+    return [];
+
+  }
+
+  return data || [];
+
+}
+
+
+/* ==========================================================
+   UTILIDADES
+   ========================================================== */
+
+function toggleMenu(){
+
+  document.getElementById("nav").classList.toggle("open");
+
+}
+
+
+function closeMenu(){
+
+  document.getElementById("nav").classList.remove("open");
+
+}
+
+
+function show(id){
+
+  document
+    .querySelectorAll("main>section")
+    .forEach(s=>s.classList.add("hidden"));
+
+  document
+    .getElementById(id)
+    .classList.remove("hidden");
+
+}
+
+
+function openTest(){
+
+  if(CONFIG.testeUrl.startsWith("http")){
+
+    window.open(CONFIG.testeUrl,"_blank");
+
+  }else{
+
+    alert("Coloque o link do Google Forms em CONFIG.testeUrl.");
+
+  }
+
+}
+
+
+function esc(s){
+
+  return String(s ?? "")
+    .replace(/[&<>"']/g,m=>({
+      "&":"&amp;",
+      "<":"&lt;",
+      ">":"&gt;",
+      '"':"&quot;",
+      "'":"&#039;"
+    }[m]));
+
+}
+
+
+function levelFromXP(xp){
+
+  let l = CONFIG.niveis[0];
+
+  for(const n of CONFIG.niveis){
+
+    if(xp >= n.xp){
+      l=n;
+    }
+
+  }
+
+  return l;
+
+}
+
+
+function nextLevel(xp){
+
+  for(const n of CONFIG.niveis){
+
+    if(xp < n.xp){
+      return n;
+    }
+
+  }
+
+  return null;
+
+}
+
+
+/* ==========================================================
+   CONFIGURAÇÃO DO ADMIN
+   ========================================================== */
+
+async function populateLevels(){
+
+  const ss = await sectors();
+
+  document.getElementById("novoSetor").innerHTML =
+    '<option value="">Sem setor</option>' +
+    ss.map(x=>
+      `<option value="${esc(x.nome)}">${esc(x.nome)}</option>`
+    ).join("");
+
+  document.getElementById("novoNivel").innerHTML =
+    CONFIG.niveis.map(n=>
+      `<option value="${esc(n.nome)}">${esc(n.nome)}</option>`
+    ).join("");
+
+  document.getElementById("levelConfigPreview").textContent =
+    CONFIG.niveis
+      .map(n=>`${n.nome}: ${n.xp} XP`)
+      .join("\n");
+
+}
+
+
+/* ==========================================================
+   LOGIN DO AGENTE
+   ========================================================== */
+
+async function loginAgent(){
+
+  const name =
+    document.getElementById("loginNome").value.trim();
+
+  const pass =
+    document.getElementById("loginSenha").value;
+
+  if(!name || !pass){
+
+    document.getElementById("loginMsg").innerHTML =
+      '<span class="danger">Preencha nome e senha.</span>';
+
+    return;
+
+  }
+
+  const senhaHash = await hashPassword(pass);
+
+  const {data,error} = await supabaseClient
+    .from("agentes")
+    .select("*")
+    .ilike("nome",name)
+    .eq("senha_hash",senhaHash)
+    .maybeSingle();
+
+  if(error){
+
+    console.error(error);
+
+    document.getElementById("loginMsg").innerHTML =
+      '<span class="danger">Erro ao conectar ao banco.</span>';
+
+    return;
+
+  }
+
+  if(!data){
+
+    document.getElementById("loginMsg").innerHTML =
+      '<span class="danger">Nome ou senha incorretos.</span>';
+
+    return;
+
+  }
+
+  if(data.status !== "ativo"){
+
+    document.getElementById("loginMsg").innerHTML =
+      '<span class="danger">Esta conta está bloqueada.</span>';
+
+    return;
+
+  }
+
+  currentAgent = data.id;
+
+  show("agente");
+
+  await renderAgent();
+
+}
+
+
+function logoutAgent(){
+
+  currentAgent=null;
+
+  show("home");
+
+}
+
+
+/* ==========================================================
+   MISSÕES
+   ========================================================== */
+
+function canDoMission(m,a){
+
+  if(m.alvo==="qualquer" || !m.alvo)
+    return true;
+
+  if(m.alvo==="setor")
+    return a.setor === (m.grupo?.[0] || "");
+
+  if(m.alvo==="grupo"){
+
+    return (m.grupo || [])
+      .map(x=>x.toLowerCase())
+      .includes(a.nome.toLowerCase());
+
+  }
+
+  return false;
+
+}
+
+
+function missionTargetLabel(m){
+
+  if(!m.alvo || m.alvo==="qualquer")
+    return "Qualquer agente";
+
+  if(m.alvo==="setor")
+    return "Setor: "+(m.grupo?.[0] || "");
+
+  return "Grupo: "+(m.grupo || []).join(", ");
+
+}
+
+
+/* ==========================================================
+   ÁREA DO AGENTE
+   ========================================================== */
+
+async function renderAgent(){
+
+  const aa = await agents();
+
+  const a = aa.find(x=>x.id===currentAgent);
+
+  if(!a)
+    return;
+
+  const l = levelFromXP(a.xp);
+
+  const next = nextLevel(a.xp);
+
+  let pct = 100;
+
+  if(next){
+
+    pct = Math.max(
+      0,
+      Math.min(
+        100,
+        ((a.xp-l.xp)/(next.xp-l.xp))*100
+      )
+    );
+
+  }
+
+  document.getElementById("agentProfile").innerHTML = `
+    <div class="card">
+
+      <h2>${esc(a.nome)}</h2>
+
+      <p>Cargo: <b>${esc(l.nome)}</b></p>
+
+      <p>Setor: <b>${esc(a.setor || "Sem setor")}</b></p>
+
+      <p class="xp">${a.xp} XP</p>
+
+      <div class="bar">
+        <div style="width:${pct}%"></div>
+      </div>
+
+      <p class="small">
+        ${
+          next
+          ? `${a.xp} / ${next.xp} XP para ${esc(next.nome)}`
+          : "Nível máximo atingido."
+        }
+      </p>
+
+    </div>
+  `;
+
+
+  const mm = await missions();
+
+  const av = mm.filter(
+    m =>
+      m.status==="disponivel" &&
+      canDoMission(m,a)
+  );
+
+
+  document.getElementById("agentMissions").innerHTML =
+    av.length
+
+    ? av.map(m=>`
+
+      <div class="card mission">
+
+        <h3>${esc(m.titulo)}</h3>
+
+        <p>${esc(m.descricao)}</p>
+
+        <p>
+          <b>+${m.xp} XP</b>
+          · ${esc(missionTargetLabel(m))}
+        </p>
+
+        ${
+          m.link
+          ?
+          `<p>
+            <a href="${esc(m.link)}" target="_blank">
+              Abrir missão →
+            </a>
+          </p>`
+          :
+          ""
+        }
+
+        <button
+          class="btn"
+          onclick="submitMission(${m.id})">
+          Enviar para aprovação
+        </button>
+
+      </div>
+
+    `).join("")
+
+    : "<p class='muted'>Nenhuma missão disponível.</p>";
+
+
+  await renderMySubs(a.id);
+
+}
+
+
+/* ==========================================================
+   MINHAS REVISÕES
+   ========================================================== */
+
+async function renderMySubs(id){
+
+  const ss = await subs();
+
+  const mm = await missions();
+
+  const list = ss.filter(
+    s=>s.agente_id===id
+  );
+
+
+  document.getElementById("mySubmissions").innerHTML =
+
+    list.length
+
+    ?
+
+    list.map(s=>{
+
+      const m =
+        mm.find(x=>x.id===s.missao_id);
+
+      return `
+
+        <div class="card">
+
+          <b>${esc(m ? m.titulo : "Missão")}</b>
+
+          —
+
+          <span class="${
+            s.status==="aprovada"
+            ? "success"
+            : s.status==="recusada"
+            ? "danger"
+            : "warning"
+          }">
+
+            ${esc(s.status)}
+
+          </span>
+
+          ${
+            s.prova
+            ?
+            `<p class="small">
+              Comprovação: ${esc(s.prova)}
+            </p>`
+            :
+            ""
+          }
+
+          ${
+            s.motivo
+            ?
+            `<p class="small">
+              Motivo: ${esc(s.motivo)}
+            </p>`
+            :
+            ""
+          }
+
+        </div>
+
+      `;
+
+    }).join("")
+
+    :
+
+    "<p class='muted'>Nenhum envio ainda.</p>";
+
+}
+
+
+/* ==========================================================
+   ENVIAR MISSÃO
+   ========================================================== */
+
+async function submitMission(mid){
+
+  const ss = await subs();
+
+  if(
+    ss.some(
+      s =>
+        s.agente_id===currentAgent &&
+        s.missao_id===mid &&
+        s.status==="pendente"
+    )
+  ){
+
+    alert("Essa missão já está aguardando aprovação.");
+
+    return;
+
+  }
+
+
+  const prova = prompt(
+    "Cole o link ou escreva a comprovação da missão:"
+  );
+
+  if(!prova)
+    return;
+
+
+  const {error} = await supabaseClient
+    .from("revisoes")
+    .insert({
+
+      agente_id: currentAgent,
+
+      missao_id: mid,
+
+      prova: prova,
+
+      status: "pendente"
+
+    });
+
+
+  if(error){
+
+    console.error(error);
+
+    alert("Erro ao enviar missão: "+error.message);
+
+    return;
+
+  }
+
+
+  await renderAgent();
+
+  alert("Missão enviada para aprovação.");
+
+}
+
+
+/* ==========================================================
+   CRIAR AGENTE
+   ========================================================== */
+
+async function createAgent(){
+
+  const nome =
+    document.getElementById("novoNome")
+      .value.trim();
+
+  const senha =
+    document.getElementById("novaSenha")
+      .value;
+
+  if(!nome || !senha){
+
+    alert("Preencha nome e senha.");
+
+    return;
+
+  }
+
+
+  const aa = await agents();
+
+  if(
+    aa.some(
+      a=>a.nome.toLowerCase()===nome.toLowerCase()
+    )
+  ){
+
+    alert("Esse nome já existe.");
+
+    return;
+
+  }
+
+
+  const senha_hash =
+    await hashPassword(senha);
+
+  const xp =
+    Math.max(
+      0,
+      Number(
+        document.getElementById("novoXP").value
+      ) || 0
+    );
+
+
+  const {error} = await supabaseClient
+    .from("agentes")
+    .insert({
+
+      nome,
+
+      senha_hash,
+
+      setor:
+        document.getElementById("novoSetor").value,
+
+      xp,
+
+      status:
+        document.getElementById("novoStatus").value
+
+    });
+
+
+  if(error){
+
+    console.error(error);
+
+    alert("Erro ao criar agente: "+error.message);
+
+    return;
+
+  }
+
+
+  document.getElementById("criarMsg").innerHTML =
+    '<span class="success">Agente criado.</span>';
+
+
+  document.getElementById("novoNome").value="";
+  document.getElementById("novaSenha").value="";
+
+  await renderAdmin();
+
+}
+
+
+/* ==========================================================
+   ALTERAR XP
+   ========================================================== */
+
+async function changeXP(id){
+
+  const aa = await agents();
+
+  const a = aa.find(x=>x.id===id);
+
+  if(!a)
+    return;
+
+
+  const val = prompt(
+    `XP atual de ${a.nome}: ${a.xp}\nDigite o novo XP:`,
+    a.xp
+  );
+
+  if(val===null)
+    return;
+
+
+  const xp = Number(val);
+
+  if(!Number.isFinite(xp) || xp<0){
+
+    alert("XP inválido.");
+
+    return;
+
+  }
+
+
+  const {error} = await supabaseClient
+    .from("agentes")
+    .update({
+      xp:Math.floor(xp)
+    })
+    .eq("id",id);
+
+
+  if(error){
+
+    alert("Erro ao alterar XP: "+error.message);
+
+    return;
+
+  }
+
+
+  await renderAdmin();
+
+}
+
+
+/* ==========================================================
+   BLOQUEAR / ATIVAR
+   ========================================================== */
+
+async function toggleStatus(id){
+
+  const aa = await agents();
+
+  const a = aa.find(x=>x.id===id);
+
+  if(!a)
+    return;
+
+
+  const novoStatus =
+    a.status==="ativo"
+    ? "bloqueado"
+    : "ativo";
+
+
+  const {error} = await supabaseClient
+    .from("agentes")
+    .update({
+      status:novoStatus
+    })
+    .eq("id",id);
+
+
+  if(error){
+
+    alert("Erro ao alterar status: "+error.message);
+
+    return;
+
+  }
+
+
+  await renderAdmin();
+
+}
+
+
+/* ==========================================================
+   ADMIN
+   ========================================================== */
+
+async function renderAdmin(){
+
+  await renderSectors();
+
+  await updateMissionTargetOptions();
+
+  const aa = await agents();
+
+
+  document.getElementById("agentsTable").innerHTML =
+
+    aa.length
+
+    ?
+
+    aa.map(a=>{
+
+      const l = levelFromXP(a.xp);
+
+      return `
+
+        <tr>
+
+          <td>${esc(a.nome)}</td>
+
+          <td>${esc(a.setor || "Sem setor")}</td>
+
+          <td>${esc(l.nome)}</td>
+
+          <td>${a.xp}</td>
+
+          <td>
+            <span class="status">
+              ${esc(a.status)}
+            </span>
+          </td>
+
+          <td>
+
+            <button
+              class="btn"
+              onclick="changeXP(${a.id})">
+              Alterar XP
+            </button>
+
+            <button
+              class="btn dark"
+              onclick="toggleStatus(${a.id})">
+
+              ${
+                a.status==="ativo"
+                ? "Bloquear"
+                : "Ativar"
+              }
+
+            </button>
+
+          </td>
+
+        </tr>
+
+      `;
+
+    }).join("")
+
+    :
+
+    "<tr><td colspan='6' class='muted'>Nenhum agente.</td></tr>";
+
+
+  await renderPending();
+
+  await renderMissionManagement();
+
+  document.getElementById("levelConfigPreview").textContent =
+    CONFIG.niveis
+      .map(n=>`${n.nome}: ${n.xp} XP`)
+      .join("\n");
+
+}
+
+
+/* ==========================================================
+   SETORES
+   ========================================================== */
+
+async function createSector(){
+
+  const nome =
+    document.getElementById("novoSetorNome")
+      .value.trim();
+
+  const desc =
+    document.getElementById("novoSetorDesc")
+      .value.trim();
+
+
+  if(!nome){
+
+    alert("Digite o nome do setor.");
+
+    return;
+
+  }
+
+
+  const ss = await sectors();
+
+  if(
+    ss.some(
+      x=>x.nome.toLowerCase()===nome.toLowerCase()
+    )
+  ){
+
+    alert("Esse setor já existe.");
+
+    return;
+
+  }
+
+
+  const {error} = await supabaseClient
+    .from("setores")
+    .insert({
+
+      nome,
+
+      descricao:desc
+
+    });
+
+
+  if(error){
+
+    alert("Erro ao criar setor: "+error.message);
+
+    return;
+
+  }
+
+
+  document.getElementById("novoSetorNome").value="";
+  document.getElementById("novoSetorDesc").value="";
+
+  document.getElementById("sectorMsg").innerHTML =
+    '<span class="success">Setor criado.</span>';
+
+
+  await renderAdmin();
+
+}
+
+
+async function deleteSector(id){
+
+  const ss = await sectors();
+
+  const x = ss.find(s=>s.id===id);
+
+  if(!x)
+    return;
+
+
+  const aa = await agents();
+
+  if(
+    aa.some(a=>a.setor===x.nome)
+  ){
+
+    alert(
+      "Não remova um setor que ainda possui agentes."
+    );
+
+    return;
+
+  }
+
+
+  if(!confirm("Excluir este setor?"))
+    return;
+
+
+  const {error} = await supabaseClient
+    .from("setores")
+    .delete()
+    .eq("id",id);
+
+
+  if(error){
+
+    alert("Erro ao excluir setor: "+error.message);
+
+    return;
+
+  }
+
+
+  await renderAdmin();
+
+}
+
+
+async function renderSectors(){
+
+  const ss = await sectors();
+
+  document.getElementById("sectorList").innerHTML =
+
+    ss.length
+
+    ?
+
+    ss.map(x=>`
+
+      <div class="card">
+
+        <b>${esc(x.nome)}</b>
+
+        <p class="small">
+          ${esc(x.descricao || "")}
+        </p>
+
+        <button
+          class="btn dark"
+          onclick="deleteSector(${x.id})">
+          Excluir setor
+        </button>
+
+      </div>
+
+    `).join("")
+
+    :
+
+    "<p class='muted'>Nenhum setor criado.</p>";
+
+
+  document.getElementById("novoSetor").innerHTML =
+    '<option value="">Sem setor</option>' +
+    ss.map(x=>
+      `<option value="${esc(x.nome)}">${esc(x.nome)}</option>`
+    ).join("");
+
+}
+
+
+/* ==========================================================
+   ALVOS DE MISSÃO
+   ========================================================== */
+
+async function updateMissionTargetOptions(){
+
+  const alvo =
+    document.getElementById("mAlvo").value;
+
+  const box =
+    document.getElementById("missionTargetOptions");
+
+
+  if(alvo==="setor"){
+
+    const ss = await sectors();
+
+    box.innerHTML =
+      '<select id="mSetor">' +
+      ss.map(x=>
+        `<option value="${esc(x.nome)}">
+          ${esc(x.nome)}
+        </option>`
+      ).join("") +
+      '</select>';
+
+  }
+
+  else if(alvo==="grupo"){
+
+    box.innerHTML =
+      '<textarea id="mGrupo" placeholder="Digite os nomes dos agentes separados por vírgula"></textarea>';
+
+  }
+
+  else{
+
+    box.innerHTML="";
+
+  }
+
+}
+
+
+/* ==========================================================
+   EDITAR MISSÃO
+   ========================================================== */
+
+async function editMission(id){
+
+  const mm = await missions();
+
+  const m = mm.find(x=>x.id===id);
+
+  if(!m)
+    return;
+
+
+  const titulo =
+    prompt("Título da missão:",m.titulo);
+
+  if(titulo===null)
+    return;
+
+
+  const desc =
+    prompt("Descrição:",m.descricao);
+
+  if(desc===null)
+    return;
+
+
+  const xp =
+    prompt("XP da missão:",m.xp);
+
+  if(xp===null)
+    return;
+
+
+  const status =
+    prompt(
+      "Status: disponivel ou pausada:",
+      m.status
+    );
+
+  if(status===null)
+    return;
+
+
+  const novoXP =
+    Math.max(0,Number(xp)||0);
+
+
+  const novoStatus =
+    status==="pausada"
+    ? "pausada"
+    : "disponivel";
+
+
+  const {error} = await supabaseClient
+    .from("missoes")
+    .update({
+
+      titulo:
+        titulo.trim() || m.titulo,
+
+      descricao:
+        desc.trim() || m.descricao,
+
+      xp:
+        novoXP,
+
+      status:
+        novoStatus
+
+    })
+    .eq("id",id);
+
+
+  if(error){
+
+    alert("Erro ao editar missão: "+error.message);
+
+    return;
+
+  }
+
+
+  await renderAdmin();
+
+}
+
+
+/* ==========================================================
+   EXCLUIR MISSÃO
+   ========================================================== */
+
+async function deleteMission(id){
+
+  if(!confirm("Excluir esta missão?"))
+    return;
+
+
+  const {error} = await supabaseClient
+    .from("missoes")
+    .delete()
+    .eq("id",id);
+
+
+  if(error){
+
+    alert("Erro ao excluir missão: "+error.message);
+
+    return;
+
+  }
+
+
+  await renderAdmin();
+
+}
+
+
+/* ==========================================================
+   CRIAR MISSÃO
+   ========================================================== */
+
+async function createMission(){
+
+  const titulo =
+    document.getElementById("mTitulo")
+      .value.trim();
+
+  const desc =
+    document.getElementById("mDesc")
+      .value.trim();
+
+  const xp =
+    Math.max(
+      0,
+      Number(
+        document.getElementById("mXP").value
+      ) || 0
+    );
+
+
+  if(!titulo || !desc){
+
+    alert("Preencha título e descrição.");
+
+    return;
+
+  }
+
+
+  const alvo =
+    document.getElementById("mAlvo").value;
+
+
+  let grupo=[];
+
+
+  if(alvo==="setor"){
+
+    const campo =
+      document.getElementById("mSetor");
+
+    if(campo)
+      grupo=[campo.value];
+
+  }
+
+
+  if(alvo==="grupo"){
+
+    const campo =
+      document.getElementById("mGrupo");
+
+    if(campo){
+
+      grupo =
+        campo.value
+          .split(",")
+          .map(x=>x.trim())
+          .filter(Boolean);
+
+    }
+
+  }
+
+
+  const {error} = await supabaseClient
+    .from("missoes")
+    .insert({
+
+      titulo,
+
+      descricao:desc,
+
+      xp,
+
+      link:
+        document.getElementById("mLink")
+          .value.trim(),
+
+      status:
+        document.getElementById("mStatus").value,
+
+      comprovacao:
+        document.getElementById("mComprovacao").value,
+
+      alvo,
+
+      grupo
+
+    });
+
+
+  if(error){
+
+    console.error(error);
+
+    alert("Erro ao criar missão: "+error.message);
+
+    return;
+
+  }
+
+
+  document.getElementById("missionMsg").innerHTML =
+    '<span class="success">Missão criada.</span>';
+
+
+  document.getElementById("mTitulo").value="";
+  document.getElementById("mDesc").value="";
+  document.getElementById("mLink").value="";
+
+
+  await renderAdmin();
+
+  await renderPublicMissions();
+
+}
+
+
+/* ==========================================================
+   GERENCIAR MISSÕES
+   ========================================================== */
+
+async function renderMissionManagement(){
+
+  const list = await missions();
+
+
+  document.getElementById("missionManagement").innerHTML =
+
+    list.length
+
+    ?
+
+    list.map(m=>`
+
+      <div class="card">
+
+        <b>${esc(m.titulo)}</b>
+
+        <p>${esc(m.descricao)}</p>
+
+        <p>
+
+          <b>+${m.xp} XP</b>
+
+          · ${esc(missionTargetLabel(m))}
+
+          · ${esc(m.status)}
+
+        </p>
+
+        ${
+          m.link
+          ?
+          `<p class="small">
+            Link: ${esc(m.link)}
+          </p>`
+          :
+          ""
+        }
+
+        <button
+          class="btn"
+          onclick="editMission(${m.id})">
+          Alterar missão
+        </button>
+
+        <button
+          class="btn dark"
+          onclick="deleteMission(${m.id})">
+          Excluir
+        </button>
+
+      </div>
+
+    `).join("")
+
+    :
+
+    "<p class='muted'>Nenhuma missão criada.</p>";
+
+}
+
+
+/* ==========================================================
+   REVISÕES PENDENTES
+   ========================================================== */
+
+async function renderPending(){
+
+  const ss = await subs();
+
+  const aa = await agents();
+
+  const mm = await missions();
+
+
+  const list =
+    ss.filter(
+      s=>s.status==="pendente"
+    );
+
+
+  document.getElementById("pendingSubmissions").innerHTML =
+
+    list.length
+
+    ?
+
+    list.map(s=>{
+
+      const a =
+        aa.find(x=>x.id===s.agente_id);
+
+      const m =
+        mm.find(x=>x.id===s.missao_id);
+
+
+      return `
+
+        <div class="card">
+
+          <b>${esc(a?.nome || "Agente")}</b>
+
+          —
+
+          ${esc(m?.titulo || "Missão")}
+
+          <p>
+            Recompensa:
+            <b>+${m?.xp || 0} XP</b>
+          </p>
+
+          <p class="small">
+            Comprovação:
+            ${esc(s.prova)}
+          </p>
+
+          <button
+            class="btn"
+            onclick="approve(${s.id})">
+            Aprovar
+          </button>
+
+          <button
+            class="btn dark"
+            onclick="reject(${s.id})">
+            Recusar
+          </button>
+
+        </div>
+
+      `;
+
+    }).join("")
+
+    :
+
+    "<p class='muted'>Nenhuma missão aguardando aprovação.</p>";
+
+}
+
+
+/* ==========================================================
+   APROVAR
+   ========================================================== */
+
+async function approve(id){
+
+  const ss = await subs();
+
+  const s =
+    ss.find(x=>x.id===id);
+
+  if(!s)
+    return;
+
+
+  const aa = await agents();
+
+  const a =
+    aa.find(x=>x.id===s.agente_id);
+
+
+  const mm = await missions();
+
+  const m =
+    mm.find(x=>x.id===s.missao_id);
+
+
+  if(!a || !m)
+    return;
+
+
+  const novoXP =
+    a.xp + (Number(m.xp)||0);
+
+
+  const updateAgent =
+    await supabaseClient
+      .from("agentes")
+      .update({
+        xp:novoXP
+      })
+      .eq("id",a.id);
+
+
+  if(updateAgent.error){
+
+    alert(
+      "Erro ao adicionar XP: "+
+      updateAgent.error.message
+    );
+
+    return;
+
+  }
+
+
+  const updateReview =
+    await supabaseClient
+      .from("revisoes")
+      .update({
+
+        status:"aprovada"
+
+      })
+      .eq("id",id);
+
+
+  if(updateReview.error){
+
+    alert(
+      "Erro ao aprovar revisão: "+
+      updateReview.error.message
+    );
+
+    return;
+
+  }
+
+
+  await renderAdmin();
+
+  alert(
+    `Missão aprovada. +${m.xp} XP para ${a.nome}.`
+  );
+
+}
+
+
+/* ==========================================================
+   RECUSAR
+   ========================================================== */
+
+async function reject(id){
+
+  const motivo =
+    prompt(
+      "Motivo da recusa (opcional):"
+    ) || "";
+
+
+  const {error} =
+    await supabaseClient
+      .from("revisoes")
+      .update({
+
+        status:"recusada",
+
+        motivo
+
+      })
+      .eq("id",id);
+
+
+  if(error){
+
+    alert(
+      "Erro ao recusar: "+
+      error.message
+    );
+
+    return;
+
+  }
+
+
+  await renderAdmin();
+
+}
+
+
+/* ==========================================================
+   MISSÕES PÚBLICAS
+   ========================================================== */
+
+async function renderPublicMissions(){
+
+  const mm = await missions();
+
+  const list =
+    mm.filter(
+      m=>m.status==="disponivel"
+    );
+
+
+  document.getElementById("publicMissions").innerHTML =
+
+    list.length
+
+    ?
+
+    list.map(m=>`
+
+      <div class="card mission">
+
+        <h3>${esc(m.titulo)}</h3>
+
+        <p>${esc(m.descricao)}</p>
+
+        <p>
+
+          <b>+${m.xp} XP</b>
+
+          · ${esc(missionTargetLabel(m))}
+
+        </p>
+
+      </div>
+
+    `).join("")
+
+    :
+
+    "<p class='muted'>Nenhuma missão disponível.</p>";
+
+}
+
+
+/* ==========================================================
+   LOGIN ADMIN
+   ========================================================== */
+
+async function loginAdmin(){
+
+  if(
+    document.getElementById("adminPass").value
+    ===
+    CONFIG.adminSenha
+  ){
+
+    show("admin");
+
+    await renderAdmin();
+
+  }
+
+  else{
+
+    document.getElementById("adminMsg").innerHTML =
+      '<span class="danger">Senha incorreta.</span>';
+
+  }
+
+}
+
+
+function logoutAdmin(){
+
+  show("home");
+
+  document.getElementById("adminPass").value="";
+
+}
+
+
+/* ==========================================================
+   INICIALIZAÇÃO
+   ========================================================== */
+
+document.addEventListener("DOMContentLoaded",async()=>{
+
+  document.getElementById("levelConfigPreview").textContent =
+    CONFIG.niveis
+      .map(n=>`${n.nome}: ${n.xp} XP`)
+      .join("\n");
+
+});
+
+</script>
+
+</body>
+</html>
